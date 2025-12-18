@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// A chave será lida da Vercel (VITE_GEMINI_API_KEY)
 const getApiKey = () => {
 try { return import.meta.env.VITE_GEMINI_API_KEY || ""; } catch (e) { return ""; }
 };
@@ -13,13 +12,7 @@ const [loading, setLoading] = useState(false);
 const [isListening, setIsListening] = useState(false);
 const [isTalking, setIsTalking] = useState(false);
 
-const [leftEyeClosed, setLeftEyeClosed] = useState(false);
-const [rightEyeClosed, setRightEyeClosed] = useState(false);
-const [pettingScore, setPettingScore] = useState(0);
-const [eyePokeTimer, setEyePokeTimer] = useState(null);
-
 const audioContext = useRef(null);
-const talkInterval = useRef(null);
 
 const initAudio = async () => {
 if (!audioContext.current) {
@@ -60,19 +53,18 @@ setIsTalking(false);
 }
 };
 
-const handleInteraction = async (text, customPrompt = null) => {
-if (!apiKey) return;
-if ((!text.trim() && !customPrompt) || loading) return;
+const handleInteraction = async (text) => {
+if (!apiKey || !text.trim() || loading) return;
 await initAudio();
 setLoading(true);
-if (!customPrompt) setInput('');
+setInput('');
 
 try {
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: `Age como um pet virtual. Responde curto e fofo. Retorna APENAS JSON: {"text": "frase", "mood": "happy|sad|angry|surprised"}. Contexto: ${customPrompt || text}` }] }]
+      contents: [{ parts: [{ text: `Age como um pet virtual. Responde curto e fofo em português. Retorna APENAS JSON: {"text": "frase", "mood": "happy|sad|angry|surprised"}. Contexto: ${text}` }] }]
     })
   });
 
@@ -87,7 +79,7 @@ try {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: `Diz com fofura: ${parsed.text}` }] }],
+      contents: [{ parts: [{ text: parsed.text }] }],
       generationConfig: { 
         responseModalities: ["AUDIO"], 
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } 
@@ -128,7 +120,6 @@ style={{ backgroundColor: theme.bg, boxShadow: 0 0 80px ${theme.glow} }}
 >
 <div className="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(0,0,0,0.2)_50%,transparent_50%)] bg-[length:100%_6px] z-10"></div>
 
-    {/* Face do Pet Simplificada */}
     <div className={`relative z-0 transition-transform duration-300 ${isTalking ? 'scale-110' : 'scale-100'}`}>
        <svg width="240" height="120" viewBox="0 0 240 120">
           <circle cx="65" cy="60" r="16" fill={theme.text} />
@@ -145,9 +136,11 @@ style={{ backgroundColor: theme.bg, boxShadow: 0 0 80px ${theme.glow} }}
       onChange={(e) => setInput(e.target.value)}
       onKeyDown={(e) => e.key === 'Enter' && handleInteraction(input)}
       className="flex-1 bg-zinc-900 border-2 border-zinc-800 text-cyan-400 p-4 rounded-xl focus:outline-none focus:border-cyan-600"
-      placeholder="Diz olá..."
+      placeholder="Diz algo ao Bit..."
     />
-    <button onClick={startListening} className={`p-4 rounded-xl ${isListening ? 'bg-red-500' : 'bg-zinc-800'}`}>🎤</button>
+    <button onClick={startListening} className={`p-4 rounded-xl ${isListening ? 'bg-red-500' : 'bg-zinc-800'}`}>
+      {isListening ? '🛑' : '🎤'}
+    </button>
     <button onClick={() => handleInteraction(input)} className="bg-cyan-600 text-black px-6 rounded-xl font-bold">OK</button>
   </div>
 </div>
